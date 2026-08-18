@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Layout from '../components/Layout';
-import CandidatesBySource from '../components/CandidatesBySource';
+import TagAnalytics from '../components/TagAnalytics';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -124,10 +124,10 @@ const Dashboard = () => {
               </div>
             </div>
           )}
-
-          <div className="row g-4">
+          
+          <div className="row g-4 mt-2">
             <div className="col-lg-6">
-              <CandidatesBySource />
+              <TagAnalytics />
             </div>
           </div>
         </>

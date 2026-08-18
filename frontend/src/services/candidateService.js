@@ -22,3 +22,8 @@ export const updateCandidateStatus = (id, status) => api.patch(`/candidates/${id
 export const getPipelineStatuses = () => api.get('/candidates/statuses');
 export const sendCandidateEmail = (payload) => api.post('/emails/send', payload);
 export const getCandidateEmailHistory = (candidateId) => api.get(`/emails/candidate/${candidateId}`);
+
+// Tag operations
+export const addCandidateTag = (candidateId, tag) => api.post(`/candidates/${candidateId}/tags`, { tag });
+export const removeCandidateTag = (candidateId, tag) => api.delete(`/candidates/${candidateId}/tags/${encodeURIComponent(tag)}`);
+export const getTagAnalytics = () => api.get('/candidates/analytics/tags');

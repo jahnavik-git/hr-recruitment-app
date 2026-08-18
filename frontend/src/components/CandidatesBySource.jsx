@@ -11,7 +11,7 @@ const CandidatesBySource = () => {
       try {
         setLoading(true);
         const response = await api.get('/analytics/sources');
-        setData(response.data.sources || []);
+        setData(response.data.data?.sources || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load source analytics');
       } finally {

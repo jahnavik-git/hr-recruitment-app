@@ -5,6 +5,7 @@ import { getInterviews } from '../services/interviewService';
 import { getResumeUrl } from '../utils/urlHelper';
 import { useAuth } from '../context/AuthContext';
 import ActivityTimeline from '../components/ActivityTimeline';
+import TagSelector from '../components/TagSelector';
 
 const emailTemplates = {
   'Application Received': {
@@ -322,7 +323,13 @@ const CandidateDetails = () => {
             </div>
           </div>
 
-          <div className="card mb-4 shadow-sm">
+          <TagSelector 
+            candidateId={candidate._id} 
+            tags={candidate.tags || []} 
+            onTagsChange={(updatedTags) => setCandidate({ ...candidate, tags: updatedTags })}
+          />
+
+          <div className="card mb-4 shadow-sm mt-4">
             <div className="card-body">
               <h5 className="card-title">Background</h5>
               <div className="row g-4">

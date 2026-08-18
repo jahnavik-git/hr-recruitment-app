@@ -12,6 +12,9 @@ import {
   getPipelineStatuses,
   updateCandidateStatus,
   deleteCandidate,
+  addTag,
+  removeTag,
+  getTagAnalytics,
 } from '../controllers/candidateController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -70,6 +73,7 @@ router.use(protect);
 router.post('/upload', upload.single('resume'), uploadResume);
 router.post('/upload-image', uploadImage.single('image'), uploadCandidateImage);
 router.get('/statuses', getPipelineStatuses);
+router.get('/analytics/tags', getTagAnalytics);
 router.route('/').get(getCandidates).post(authorize('Admin', 'HR', 'Recruiter'), createCandidate);
 router
   .route('/:id')
@@ -78,5 +82,7 @@ router
   .delete(authorize('Admin', 'HR', 'Recruiter'), deleteCandidate);
 router.post('/:id/match', authorize('Admin', 'HR', 'Recruiter'), matchCandidate);
 router.patch('/:id/status', authorize('Admin', 'HR', 'Recruiter'), updateCandidateStatus);
+router.post('/:id/tags', authorize('Admin', 'HR', 'Recruiter'), addTag);
+router.delete('/:id/tags/:tag', authorize('Admin', 'HR', 'Recruiter'), removeTag);
 
 export default router;

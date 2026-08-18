@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getCandidates, deleteCandidate } from '../services/candidateService';
 import Layout from '../components/Layout';
 import { getResumeUrl } from '../utils/urlHelper';
+import { CANDIDATE_TAGS, TAG_COLORS } from '../constants/tags';
 
 const CandidatesList = () => {
   const location = useLocation();
@@ -14,6 +15,7 @@ const CandidatesList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
   const [partnerFilter, setPartnerFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
   const loadCandidates = async (params = {}) => {
@@ -35,17 +37,20 @@ const CandidatesList = () => {
     const nextStatus = params.get('status') || '';
     const nextSource = params.get('source') || '';
     const nextPartner = params.get('partner') || '';
+    const nextTag = params.get('tags') || '';
 
     setSearch(nextSearch);
     setStatusFilter(nextStatus);
     setSourceFilter(nextSource);
     setPartnerFilter(nextPartner);
+    setTagFilter(nextTag);
 
     loadCandidates({
       search: nextSearch,
       status: nextStatus,
       source: nextSource,
       partner: nextPartner,
+      tags: nextTag,
     });
   }, [location.search]);
 
@@ -71,6 +76,7 @@ const CandidatesList = () => {
       status: statusFilter,
       source: sourceFilter,
       partner: partnerFilter,
+      tags: tagFilter,
     });
     navigate(`/candidates?${params.toString()}`);
     await loadCandidates({
@@ -78,6 +84,7 @@ const CandidatesList = () => {
       status: statusFilter,
       source: sourceFilter,
       partner: partnerFilter,
+      tags: tagFilter,
     });
   };
 
@@ -86,6 +93,7 @@ const CandidatesList = () => {
     setStatusFilter('');
     setSourceFilter('');
     setPartnerFilter('');
+    setTagFilter('');
     setSortBy('newest');
     navigate('/candidates');
     await loadCandidates();
@@ -179,6 +187,21 @@ const CandidatesList = () => {
                   placeholder="Filter by partner"
                 />
               </div>
+              <div className="col-md-3">
+                <label className="form-label">Tags</label>
+                <select
+                  className="form-select"
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                >
+                  <option value="">All tags</option>
+                  {CANDIDATE_TAGS.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="col-md-12 d-flex gap-2 justify-content-end">
                 <button type="submit" className="btn btn-outline-primary">
                   Search
@@ -210,6 +233,7 @@ const CandidatesList = () => {
                     <th>Contact</th>
                     <th>Applied Role</th>
                     <th>Source</th>
+                    <th>Tags</th>
                     <th>Status</th>
                     <th className="text-end">Actions</th>
                   </tr>
@@ -250,24 +274,30 @@ const CandidatesList = () => {
                       <td className="align-middle">
                         <span className="badge bg-info text-dark">{candidate.source || 'Unknown'}</span>
                       </td>
+                      <td className="align-middle">
+                        <div className="d-flex flex-wrap gap-1">
+                          {candidate.tags && candidate.tags.length > 0 ? (
+                            candidate.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="badge"
+                                style={{
+                                  backgroundColor: TAG_COLORS[tag] || '#757575',
+                                  color: '#000',
+                                  fontSize: '0.75rem',
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-muted small">-</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="align-middle">{candidate.status || 'New'}</td>
                       <td className="text-end align-middle">
                         <div className="d-flex justify-content-end align-items-center gap-2">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-primary"
-                            style={{ backgroundColor: '#6f42c1', borderColor: '#6f42c1' }}
-                            onClick={() => {
-                              if (!candidate.email) {
-                                window.alert('This candidate does not have an email address.');
-                                return;
-                              }
-                              navigate(`/candidates/${candidate._id}`);
-                            }}
-                          >
-                            <i className="bi bi-envelope me-1"></i>
-                            Send Email
-                          </button>
                           <Link to={`/candidates/${candidate._id}`} className="btn btn-sm btn-outline-primary">
                             View
                           </Link>

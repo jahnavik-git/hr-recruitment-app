@@ -3,7 +3,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../middleware/asyncHandler.js';
-import Candidate, { CANDIDATE_SOURCES } from '../models/Candidate.js';
+import Candidate, { CANDIDATE_SOURCES, CANDIDATE_TAGS } from '../models/Candidate.js';
 import Job from '../models/Job.js';
 import Partner from '../models/Partner.js';
 import ActivityLog from '../models/ActivityLog.js';
@@ -395,7 +395,7 @@ export const createCandidate = asyncHandler(async (req, res) => {
 });
 
 export const getCandidates = asyncHandler(async (req, res) => {
-  const { search, source, appliedJob, experience, skills, location, status, matchScoreMin, matchScoreMax, partner, limit } = req.query;
+  const { search, source, appliedJob, experience, skills, location, status, matchScoreMin, matchScoreMax, partner, tags, limit } = req.query;
 
   const query = {};
 
@@ -477,6 +477,13 @@ export const getCandidates = asyncHandler(async (req, res) => {
     query.matchScore = {};
     if (matchScoreMin) query.matchScore.$gte = Number(matchScoreMin);
     if (matchScoreMax) query.matchScore.$lte = Number(matchScoreMax);
+  }
+
+  if (tags) {
+    const tagList = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim()).filter(Boolean);
+    if (tagList.length > 0) {
+      query.tags = { $all: tagList };
+    }
   }
 
   let candidateQuery = Candidate.find(query)
@@ -694,4 +701,127 @@ export const deleteCandidate = asyncHandler(async (req, res) => {
     success: true,
     message: 'Candidate deleted successfully',
   });
+});
+
+/**
+ * Add a tag to a candidate
+ * POST /api/candidates/:id/tags
+ */
+export const addTag = asyncHandler(async (req, res) => {
+  const candidate = await Candidate.findById(req.params.id);
+  if (!candidate) {
+    throw new ApiError(404, 'Candidate not found');
+  }
+
+  const { tag } = req.body;
+
+  if (!tag) {
+    throw new ApiError(400, 'Tag is required');
+  }
+
+  if (!CANDIDATE_TAGS.includes(tag)) {
+    throw new ApiError(400, `Invalid tag. Allowed tags: ${CANDIDATE_TAGS.join(', ')}`);
+  }
+
+  if (candidate.tags.includes(tag)) {
+    return res.status(200).json({
+      success: true,
+      message: 'Tag already exists',
+      data: { candidate },
+    });
+  }
+
+  candidate.tags.push(tag);
+  await candidate.save();
+
+  // Create activity log
+  await createActivity({
+    candidateId: candidate._id,
+    type: 'TAG_ADDED',
+    title: 'Candidate tagged',
+    description: `Added tag "${tag}"`,
+    performedBy: req.user._id,
+    metadata: { tag },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Tag added successfully',
+    data: { candidate },
+  });
+});
+
+/**
+ * Remove a tag from a candidate
+ * DELETE /api/candidates/:id/tags/:tag
+ */
+export const removeTag = asyncHandler(async (req, res) => {
+  const candidate = await Candidate.findById(req.params.id);
+  if (!candidate) {
+    throw new ApiError(404, 'Candidate not found');
+  }
+
+  const { tag } = req.params;
+
+  if (!candidate.tags.includes(tag)) {
+    return res.status(200).json({
+      success: true,
+      message: 'Tag does not exist',
+      data: { candidate },
+    });
+  }
+
+  candidate.tags = candidate.tags.filter((t) => t !== tag);
+  await candidate.save();
+
+  // Create activity log
+  await createActivity({
+    candidateId: candidate._id,
+    type: 'TAG_REMOVED',
+    title: 'Candidate tag removed',
+    description: `Removed tag "${tag}"`,
+    performedBy: req.user._id,
+    metadata: { tag },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Tag removed successfully',
+    data: { candidate },
+  });
+});
+
+/**
+ * Get tag analytics
+ * GET /api/candidates/analytics/tags
+ */
+export const getTagAnalytics = asyncHandler(async (req, res) => {
+  try {
+    const tagStats = await Candidate.aggregate([
+      {
+        $unwind: '$tags',
+      },
+      {
+        $group: {
+          _id: '$tags',
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { count: -1 },
+      },
+    ]);
+
+    const data = tagStats.map((stat) => ({
+      tag: stat._id,
+      count: stat.count,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    throw new ApiError(500, 'Failed to fetch tag analytics');
+  }
 });

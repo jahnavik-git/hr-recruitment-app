@@ -12,6 +12,16 @@ export const CANDIDATE_SOURCES = [
   'Other',
 ];
 
+export const CANDIDATE_TAGS = [
+  '⭐ Top Candidate',
+  '🔥 Urgent',
+  'Remote',
+  'Immediate Joiner',
+  'Experienced',
+  'Referral',
+  'Other',
+];
+
 const candidateSchema = new mongoose.Schema(
   {
     firstName: {
@@ -133,6 +143,11 @@ const candidateSchema = new mongoose.Schema(
       ],
       default: 'New',
     },
+    tags: [
+      {
+        type: String,
+      },
+    ],
     activityLogs: [
       {
         type: mongoose.Schema.Types.ObjectId,
