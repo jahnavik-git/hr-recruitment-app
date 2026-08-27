@@ -223,7 +223,7 @@ const CandidateForm = () => {
               <div className="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-start">
                 <div>
                   <h5 className="card-title mb-2">Candidate details</h5>
-                  <p className="text-muted mb-0">Organize the candidate profile with clean sections and easy-to-read fields.</p>
+                 
                 </div>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                   <label className="btn btn-outline-primary mb-0">
