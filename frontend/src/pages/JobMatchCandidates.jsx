@@ -126,20 +126,8 @@ const JobMatchCandidates = () => {
         )
       );
       if (selectedCandidate?._id === candidateId) {
-        setSelectedCandidate((prev) =>
-          prev ? { ...prev, status: updatedStatus } : prev
-        );
-        setCandidateMatchDetails((prev) =>
-          prev
-            ? {
-                ...prev,
-                candidate: {
-                  ...prev.candidate,
-                  status: updatedStatus,
-                },
-              }
-            : prev
-        );
+        setSelectedCandidate(null);
+        setCandidateMatchDetails(null);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update status');
