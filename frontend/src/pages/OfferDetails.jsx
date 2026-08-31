@@ -11,6 +11,7 @@ const OfferDetails = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [emailNotice, setEmailNotice] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const loadOffer = async () => {
     try { const response = await getOffer(id); setOffer(response.data.data.offer); }
@@ -20,7 +21,9 @@ const OfferDetails = () => {
   useEffect(() => { loadOffer(); }, [id]);
 
   const changeStatus = async (status) => {
+    if (updatingStatus) return;
     try {
+      setUpdatingStatus(true);
       setEmailNotice(null);
       const response = await updateOfferStatus(id, status);
       setOffer(response.data.data.offer);
@@ -34,6 +37,8 @@ const OfferDetails = () => {
       window.dispatchEvent(new Event('dashboardUpdated'));
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update offer status');
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -65,7 +70,7 @@ const OfferDetails = () => {
         <dl className="row"><dt className="col-sm-4">Salary</dt><dd className="col-sm-8">{offer.salary}</dd><dt className="col-sm-4">Benefits</dt><dd className="col-sm-8">{offer.benefits || '-'}</dd><dt className="col-sm-4">Joining date</dt><dd className="col-sm-8">{date(offer.joiningDate)}</dd><dt className="col-sm-4">Location</dt><dd className="col-sm-8">{offer.location}</dd><dt className="col-sm-4">Employment type</dt><dd className="col-sm-8">{offer.employmentType}</dd><dt className="col-sm-4">Reporting manager</dt><dd className="col-sm-8">{offer.reportingManager}</dd><dt className="col-sm-4">Offer expiry</dt><dd className="col-sm-8">{date(offer.expiryDate)}</dd></dl>
         <h6>Terms and Conditions</h6><p>This offer is subject to verification of the information provided during recruitment, completion of required documentation, and compliance with company policies.</p><p className="mb-0">Sincerely,<br /><strong>Authorized HR Signatory</strong></p>
       </div></div></div>
-      <div className="col-lg-4"><div className="card"><div className="card-body"><h5>Actions</h5><div className="d-grid gap-2"><button className="btn btn-primary" onClick={downloadPdf}><i className="bi bi-file-earmark-pdf me-2" />Generate / Download PDF</button><button className="btn btn-outline-primary" disabled={offer.status === 'Sent'} onClick={() => changeStatus('Sent')}>Send Offer</button><button className="btn btn-outline-success" disabled={offer.status === 'Accepted'} onClick={() => changeStatus('Accepted')}>Accept</button><button className="btn btn-outline-danger" disabled={offer.status === 'Declined'} onClick={() => changeStatus('Declined')}>Decline</button><Link className="btn btn-outline-secondary" to={`/offers/${id}/edit`}>Edit Offer</Link><button className="btn btn-outline-dark" onClick={removeOffer}>Delete Offer</button></div></div></div></div>
+      <div className="col-lg-4"><div className="card"><div className="card-body"><h5>Actions</h5><div className="d-grid gap-2"><button className="btn btn-primary" onClick={downloadPdf}><i className="bi bi-file-earmark-pdf me-2" />Generate / Download PDF</button><button className="btn btn-outline-primary" disabled={updatingStatus || offer.status === 'Sent'} onClick={() => changeStatus('Sent')}>Send Offer</button><button className="btn btn-outline-success" disabled={updatingStatus || offer.status === 'Accepted'} onClick={() => changeStatus('Accepted')}>Accept</button><button className="btn btn-outline-danger" disabled={updatingStatus || offer.status === 'Declined'} onClick={() => changeStatus('Declined')}>Decline</button><Link className="btn btn-outline-secondary" to={`/offers/${id}/edit`}>Edit Offer</Link><button className="btn btn-outline-dark" onClick={removeOffer}>Delete Offer</button></div></div></div></div>
     </div>
   </Layout>;
 };

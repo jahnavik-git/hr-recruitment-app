@@ -6,6 +6,7 @@ import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../middleware/asyncHandler.js';
 import env from '../config/env.js';
 import { createActivity } from '../utils/activityService.js';
+import { plainTextToHtml } from '../utils/emailContent.js';
 
 // Create Nodemailer transporter for Gmail
 const transporter = nodemailer.createTransport({
@@ -87,11 +88,14 @@ export const sendCandidateEmail = asyncHandler(async (req, res) => {
     let result;
     if (emailConfigured) {
       result = await transporter.sendMail({
-        from: `"Kokkiligadda Jahnavi" <${env.emailUser}>`,
+        from: `"${process.env.EMAIL_FROM_NAME || 'HR Recruitment Team'}" <${env.emailUser}>`,
+        replyTo: env.emailUser,
         to: recipient,
         subject: renderedSubject,
-        html: renderedMessage,
+        text: renderedMessage,
+        html: plainTextToHtml(renderedMessage),
       });
+      console.log('[candidate-email-sent]', recipient, renderedSubject, result.messageId);
     } else {
       // Mock mode: log email instead of sending
       console.log('[email-mock-mode] Email not sent (credentials not configured):', {
@@ -152,6 +156,7 @@ export const sendCandidateEmail = asyncHandler(async (req, res) => {
       errorMessage: error.message || 'Failed to send email',
     });
 
+    console.error('[candidate-email-failed]', recipient, renderedSubject, error.message);
     throw new ApiError(500, error.message || 'Failed to send email. Please try again.');
   }
 });

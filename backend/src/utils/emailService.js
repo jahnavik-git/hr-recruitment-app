@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { escapeHtml, htmlToPlainText } from './emailContent.js';
 
 const smtpConfigured = Boolean(
   process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
@@ -37,8 +38,10 @@ const sendMail = async ({ to, subject, html, attachments }) => {
   try {
     const info = await getTransporter().sendMail({
       from: `"${process.env.EMAIL_FROM_NAME || 'HR Recruitment Team'}" <${process.env.EMAIL_USER}>`,
+      replyTo: process.env.EMAIL_USER,
       to,
       subject,
+      text: htmlToPlainText(html),
       html,
       attachments,
     });
@@ -55,8 +58,8 @@ export const sendOfferEmail = async ({ to, candidateName, offer, attachmentPath 
   const jobTitle = offer?.jobId?.jobTitle || 'the position';
 
   const html = `
-    <p>Dear ${candidateName},</p>
-    <p>Congratulations! We are pleased to offer you the position of <strong>${jobTitle}</strong>.</p>
+    <p>Dear ${escapeHtml(candidateName)},</p>
+    <p>Congratulations! We are pleased to offer you the position of <strong>${escapeHtml(jobTitle)}</strong>.</p>
     <p>Please find your offer letter attached. Let us know if you have any questions.</p>
     <p>Best regards,<br/>HR Recruitment Team</p>
   `;
@@ -70,7 +73,7 @@ export const sendOfferEmail = async ({ to, candidateName, offer, attachmentPath 
 };
 
 export const sendSelectionEmail = async (candidate) => {
-  const candidateName = `${candidate.firstName} ${candidate.lastName}`;
+  const candidateName = escapeHtml(`${candidate.firstName} ${candidate.lastName}`);
   const html = `
     <p>Dear ${candidateName},</p>
     <p>Great news — you have been selected to move forward in our hiring process. Our team will be in touch shortly with next steps.</p>
@@ -81,7 +84,7 @@ export const sendSelectionEmail = async (candidate) => {
 };
 
 export const sendRejectionEmail = async (candidate) => {
-  const candidateName = `${candidate.firstName} ${candidate.lastName}`;
+  const candidateName = escapeHtml(`${candidate.firstName} ${candidate.lastName}`);
   const html = `
     <p>Dear ${candidateName},</p>
     <p>Thank you for taking the time to apply and interview with us. After careful consideration, we have decided to move forward with other candidates at this time.</p>
@@ -109,21 +112,22 @@ export const sendInterviewInvitationEmail = async ({ candidate, job, interview }
     ? `${interview.startTime}${interview.endTime ? ' - ' + interview.endTime : ''}`
     : '';
 
+  const meetingLink = escapeHtml(interview.meetingLink || '');
   const whereLine = interview.meetingLink
-    ? `<p><strong>Meeting link:</strong> <a href="${interview.meetingLink}">${interview.meetingLink}</a></p>`
+    ? `<p><strong>Meeting link:</strong> <a href="${meetingLink}">${meetingLink}</a></p>`
     : interview.location
-    ? `<p><strong>Location:</strong> ${interview.location}</p>`
+    ? `<p><strong>Location:</strong> ${escapeHtml(interview.location)}</p>`
     : '';
 
   const html = `
-    <p>Dear ${candidateName},</p>
-    <p>We are pleased to invite you for an interview for the position of <strong>${jobTitle}</strong>.</p>
-    <p><strong>Interview type:</strong> ${interview.interviewType || 'N/A'}</p>
+    <p>Dear ${escapeHtml(candidateName)},</p>
+    <p>We are pleased to invite you for an interview for the position of <strong>${escapeHtml(jobTitle)}</strong>.</p>
+    <p><strong>Interview type:</strong> ${escapeHtml(interview.interviewType || 'N/A')}</p>
     <p><strong>Date:</strong> ${dateStr}</p>
-    ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
+    ${timeStr ? `<p><strong>Time:</strong> ${escapeHtml(timeStr)}</p>` : ''}
     ${whereLine}
-    ${interview.interviewer ? `<p><strong>Interviewer:</strong> ${interview.interviewer}</p>` : ''}
-    ${interview.notes ? `<p><strong>Notes:</strong> ${interview.notes}</p>` : ''}
+    ${interview.interviewer ? `<p><strong>Interviewer:</strong> ${escapeHtml(interview.interviewer)}</p>` : ''}
+    ${interview.notes ? `<p><strong>Notes:</strong> ${escapeHtml(interview.notes)}</p>` : ''}
     <p>Please reply to confirm your availability. We look forward to speaking with you.</p>
     <p>Best regards,<br/>HR Recruitment Team</p>
   `;
@@ -148,11 +152,13 @@ export const sendInterviewReminderEmail = async ({ candidate, job, interview }) 
       })
     : 'TBD';
 
+  const meetingLink = escapeHtml(interview.meetingLink || '');
+
   const html = `
-    <p>Dear ${candidateName},</p>
-    <p>This is a friendly reminder about your upcoming interview for <strong>${jobTitle}</strong> on <strong>${dateStr}</strong>${interview.startTime ? ` at ${interview.startTime}` : ''}.</p>
-    ${interview.meetingLink ? `<p><strong>Meeting link:</strong> <a href="${interview.meetingLink}">${interview.meetingLink}</a></p>` : ''}
-    ${interview.location ? `<p><strong>Location:</strong> ${interview.location}</p>` : ''}
+    <p>Dear ${escapeHtml(candidateName)},</p>
+    <p>This is a friendly reminder about your upcoming interview for <strong>${escapeHtml(jobTitle)}</strong> on <strong>${dateStr}</strong>${interview.startTime ? ` at ${escapeHtml(interview.startTime)}` : ''}.</p>
+    ${interview.meetingLink ? `<p><strong>Meeting link:</strong> <a href="${meetingLink}">${meetingLink}</a></p>` : ''}
+    ${interview.location ? `<p><strong>Location:</strong> ${escapeHtml(interview.location)}</p>` : ''}
     <p>See you soon!</p>
     <p>Best regards,<br/>HR Recruitment Team</p>
   `;
