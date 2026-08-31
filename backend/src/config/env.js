@@ -32,7 +32,7 @@ const env = {
   adminPassword: process.env.ADMIN_PASSWORD || 'Admin@123',
   emailUser: process.env.EMAIL_USER || '',
   emailPassword: process.env.EMAIL_PASSWORD || '',
-  companyName: process.env.COMPANY_NAME || 'HR Recruitment ATS',
+  companyName: process.env.COMPANY_NAME || 'Azimuth AI',
 };
 
 export default env;

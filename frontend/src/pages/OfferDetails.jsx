@@ -66,7 +66,7 @@ const OfferDetails = () => {
     {emailNotice && <div className={`alert alert-${emailNotice.variant}`}>{emailNotice.message}</div>}
     <div className="row g-4">
       <div className="col-lg-8"><div className="card"><div className="card-body">
-        <h5>Offer Preview</h5><hr /><h4>HR Recruitment Management System</h4><p>Dear {candidateName},</p><p>We are pleased to offer you the position of <strong>{offer.jobId?.jobTitle}</strong> in the {offer.jobId?.department} department.</p>
+        <h5>Offer Preview</h5><hr /><h4>Azimuth AI</h4><p>Dear {candidateName},</p><p>We are pleased to offer you the position of <strong>{offer.jobId?.jobTitle}</strong> in the {offer.jobId?.department} department.</p>
         <dl className="row"><dt className="col-sm-4">Salary</dt><dd className="col-sm-8">{offer.salary}</dd><dt className="col-sm-4">Benefits</dt><dd className="col-sm-8">{offer.benefits || '-'}</dd><dt className="col-sm-4">Joining date</dt><dd className="col-sm-8">{date(offer.joiningDate)}</dd><dt className="col-sm-4">Location</dt><dd className="col-sm-8">{offer.location}</dd><dt className="col-sm-4">Employment type</dt><dd className="col-sm-8">{offer.employmentType}</dd><dt className="col-sm-4">Reporting manager</dt><dd className="col-sm-8">{offer.reportingManager}</dd><dt className="col-sm-4">Offer expiry</dt><dd className="col-sm-8">{date(offer.expiryDate)}</dd></dl>
         <h6>Terms and Conditions</h6><p>This offer is subject to verification of the information provided during recruitment, completion of required documentation, and compliance with company policies.</p><p className="mb-0">Sincerely,<br /><strong>Authorized HR Signatory</strong></p>
       </div></div></div>

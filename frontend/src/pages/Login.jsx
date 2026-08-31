@@ -44,7 +44,7 @@ const Login = () => {
               <div className="card-body p-4">
                 <div className="text-center mb-4">
                   <i className="bi bi-people-fill text-primary fs-1"></i>
-                  <h2 className="h4 mt-2 mb-1">HR Recruitment System</h2>
+                  <h2 className="h4 mt-2 mb-1">Azimuth AI</h2>
                   <p className="text-muted small mb-0">
                     Internal login for HR staff
                   </p>

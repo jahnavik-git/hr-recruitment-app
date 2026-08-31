@@ -1,6 +1,6 @@
 export const DEFAULT_SETTINGS = {
   general: {
-    companyName: 'HR Recruitment ATS',
+    companyName: 'Azimuth AI',
     companyEmail: 'hr@company.com',
     companyPhone: '',
     timezone: 'UTC',

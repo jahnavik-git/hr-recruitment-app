@@ -31,6 +31,12 @@ const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(() => initialIsMainRoute);
   const [hasHistory, setHasHistory] = useState(false);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'azimuth');
+  }, []);
+
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -95,8 +101,8 @@ const Layout = ({ children }) => {
             >
               <i className={`bi ${sidebarOpen ? 'bi-list' : 'bi-list'}`}></i>
             </button>
-            <i className="bi bi-people-fill"></i>
-            <span className="sidebar-title-text">HR ATS</span>
+            <i className="bi bi-people-fill sidebar-logo-icon"></i>
+            <span className="sidebar-title-text">Azimuth AI</span>
           </div>
         </div>
         <nav className="nav flex-column p-3 gap-1 sidebar-nav">
@@ -152,11 +158,6 @@ const Layout = ({ children }) => {
           </NavLink>
         </nav>
         <div className="mt-auto p-3 border-top border-secondary sidebar-footer">
-          <div className="small text-white-50 mb-2 sidebar-footer-info">
-            {user?.firstName} {user?.lastName}
-            <br />
-            <span className="badge bg-secondary sidebar-link-text">{user?.role}</span>
-          </div>
           <button
             className="btn btn-outline-light btn-sm w-100 sidebar-footer-logout"
             onClick={handleLogout}
@@ -183,7 +184,47 @@ const Layout = ({ children }) => {
                   Back
                 </button>
               )}
-              <span className="h5 mb-0">HR Recruitment Management System</span>
+              <span className="h5 mb-0">HR RECRUITMENT</span>
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-3">
+            <button type="button" className="btn btn-sm btn-outline-secondary rounded-circle p-2" aria-label="Notifications">
+              <i className="bi bi-bell"></i>
+            </button>
+            <div className="dropdown position-relative">
+              <button
+                type="button"
+                className="btn d-flex align-items-center gap-2 border-0"
+                onClick={() => setUserMenuOpen((open) => !open)}
+                aria-expanded={userMenuOpen}
+              >
+                <span
+                  className="rounded-circle text-white d-flex align-items-center justify-content-center fw-semibold"
+                  style={{ width: 36, height: 36, background: 'var(--brand-gradient, #7c3aed)', fontSize: '0.9rem' }}
+                >
+                  {(user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')}
+                </span>
+                <span className="text-start d-none d-md-block">
+                  <span className="d-block small fw-semibold" style={{ lineHeight: 1.1 }}>
+                    {user?.firstName} {user?.lastName}
+                  </span>
+                  <span className="d-block text-muted" style={{ fontSize: '0.75rem', lineHeight: 1.1 }}>
+                    {user?.role}
+                  </span>
+                </span>
+                <i className="bi bi-chevron-down small text-muted"></i>
+              </button>
+              {userMenuOpen && (
+                <ul className="dropdown-menu dropdown-menu-end show" style={{ position: 'absolute', right: 0, top: '100%' }}>
+                  <li><span className="dropdown-item-text small text-muted">{user?.role}</span></li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li>
+                    <button type="button" className="dropdown-item" onClick={handleLogout}>
+                      <i className="bi bi-box-arrow-right me-2"></i>Logout
+                    </button>
+                  </li>
+                </ul>
+              )}
             </div>
           </div>
         </header>

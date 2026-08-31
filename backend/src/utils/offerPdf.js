@@ -17,7 +17,7 @@ export const generateOfferPdf = (offer) => {
   const candidateName = `${offer.candidateId.firstName} ${offer.candidateId.lastName}`;
   const date = (value) => value ? new Date(value).toLocaleDateString() : 'Not provided';
 
-  document.fontSize(20).font('Helvetica-Bold').text('HR Recruitment Management System', { align: 'center' });
+  document.fontSize(20).font('Helvetica-Bold').text('Azimuth AI', { align: 'center' });
   document.moveDown(0.5).fontSize(16).text('Offer Letter', { align: 'center' });
   document.moveDown(1).fontSize(10).font('Helvetica').text(`Offer ID: ${offer.offerId}`);
   document.text(`Offer Date: ${date(offer.offerDate)}`);
@@ -45,7 +45,7 @@ export const generateOfferPdf = (offer) => {
   );
   document.moveDown(1.5).text('Sincerely,');
   document.moveDown(1).font('Helvetica-Bold').text('Authorized HR Signatory');
-  document.font('Helvetica').text('HR Recruitment Management System');
+  document.font('Helvetica').text('Azimuth AI');
   document.end();
 
   return new Promise((resolve, reject) => {

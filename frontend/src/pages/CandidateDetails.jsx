@@ -54,7 +54,7 @@ const templateOptions = Object.keys(emailTemplates);
 
 const buildTemplateContent = (templateName, candidate, user) => {
   const jobTitle = candidate?.appliedJob?.jobTitle || '';
-  const companyName = 'HR Recruitment ATS';
+  const companyName = 'Azimuth AI';
   const recruiterName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Recruiter';
   const candidateName = [candidate?.firstName, candidate?.lastName].filter(Boolean).join(' ') || 'Candidate';
   const candidateEmail = candidate?.email || '';
@@ -289,7 +289,6 @@ const CandidateDetails = () => {
           <button
             type="button"
             className="btn btn-primary"
-            style={{ backgroundColor: '#6f42c1', borderColor: '#6f42c1' }}
             onClick={openEmailModal}
           >
             <i className="bi bi-envelope me-2"></i>
@@ -493,7 +492,7 @@ const CandidateDetails = () => {
         <div className="modal fade show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div className="modal-content">
-              <div className="modal-header" style={{ backgroundColor: '#6f42c1', color: '#fff' }}>
+              <div className="modal-header modal-header-brand">
                 <h5 className="modal-title">Send Email</h5>
                 <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={() => setShowEmailModal(false)}></button>
               </div>
@@ -551,7 +550,6 @@ const CandidateDetails = () => {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  style={{ backgroundColor: '#6f42c1', borderColor: '#6f42c1' }}
                   disabled={sendingEmail}
                   onClick={handleSendEmail}
                 >
