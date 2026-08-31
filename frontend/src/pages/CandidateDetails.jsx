@@ -372,9 +372,14 @@ const CandidateDetails = () => {
               <h5 className="card-title">Resume</h5>
               <p className="mb-3">{candidate.resumeFilename || 'Not uploaded'}</p>
               {candidate.resumeUrl && (
-                <a href={getResumeUrl(candidate.resumeUrl)} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary">
-                  <i className="bi bi-download me-1"></i>Download Resume
-                </a>
+                <div className="d-flex gap-2">
+                  <a href={getResumeUrl(candidate.resumeUrl)} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary">
+                    <i className="bi bi-box-arrow-up-right me-1"></i>Open in New Tab
+                  </a>
+                  <a href={getResumeUrl(candidate.resumeUrl)} download={candidate.resumeFilename} className="btn btn-sm btn-outline-secondary">
+                    <i className="bi bi-download me-1"></i>Download
+                  </a>
+                </div>
               )}
             </div>
           </div>
