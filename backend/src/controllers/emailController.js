@@ -9,7 +9,7 @@ import { createActivity } from '../utils/activityService.js';
 
 // Create Nodemailer transporter for Gmail
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
     user: env.emailUser,
     pass: env.emailPassword,
@@ -132,9 +132,10 @@ export const sendCandidateEmail = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: emailConfigured 
-        ? `Email sent successfully to ${recipient}` 
-        : `Email logged in mock mode (not actually sent). Check server logs.`,
+      status: emailConfigured ? 'sent' : 'mock',
+      message: emailConfigured
+        ? `Email successfully accepted by the email provider for delivery to ${recipient}.`
+        : `Mock mode: email was NOT actually sent (email credentials are not configured on this server).`,
       data: { history },
     });
   } catch (error) {

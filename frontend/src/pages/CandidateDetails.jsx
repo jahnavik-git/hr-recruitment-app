@@ -106,6 +106,7 @@ const CandidateDetails = () => {
   });
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailFeedback, setEmailFeedback] = useState('');
+  const [emailStatus, setEmailStatus] = useState('');
   const navigate = useNavigate();
 
   const candidateName = useMemo(
@@ -166,6 +167,7 @@ const CandidateDetails = () => {
       message: content.message,
     });
     setEmailFeedback('');
+    setEmailStatus('');
     setShowEmailModal(true);
   };
 
@@ -197,18 +199,22 @@ const CandidateDetails = () => {
     try {
       setSendingEmail(true);
       setEmailFeedback('');
-      await sendCandidateEmail({
+      setEmailStatus('');
+      const response = await sendCandidateEmail({
         candidateId: candidate._id,
         to: emailForm.to || candidate.email,
         subject: trimmedSubject,
         message: trimmedMessage,
         template: emailForm.template,
       });
-      setEmailFeedback(`Email sent successfully to ${candidate.email}`);
+      const { status, message } = response.data;
+      setEmailStatus(status || 'sent');
+      setEmailFeedback(message || `Email accepted by the email provider for delivery to ${candidate.email}`);
       setShowEmailModal(false);
       await loadEmailHistory();
     } catch (err) {
       const backendMessage = err.response?.data?.message || err.message || 'Failed to send email. Please try again.';
+      setEmailStatus('failed');
       setEmailFeedback(backendMessage);
     } finally {
       setSendingEmail(false);
@@ -235,7 +241,16 @@ const CandidateDetails = () => {
     <div className="container-fluid px-4 py-4">
       {emailNotice && <div className="alert alert-warning">{emailNotice}</div>}
       {emailFeedback && (
-        <div className={`alert ${emailFeedback.includes('successfully') ? 'alert-success' : 'alert-danger'}`}>
+        <div
+          className={`alert ${
+            emailStatus === 'sent'
+              ? 'alert-success'
+              : emailStatus === 'mock'
+              ? 'alert-warning'
+              : 'alert-danger'
+          }`}
+        >
+          {emailStatus === 'mock' && <strong>Not actually sent — </strong>}
           {emailFeedback}
         </div>
       )}

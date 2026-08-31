@@ -7,6 +7,7 @@ import Job from '../models/Job.js';
 import Offer from '../models/Offer.js';
 import Employee from '../models/Employee.js';
 import ActivityLog from '../models/ActivityLog.js';
+import { closeExpiredJobs } from '../utils/jobStatus.js';
 
 const parseDate = (value, endOfDay = false) => {
   if (!value) return undefined;
@@ -96,6 +97,8 @@ const normalizeMonthData = (rows) => rows.map((row) => ({ month: row._id, count:
 const buildStatusCounts = (rows) => rows.map((row) => ({ status: row._id, count: row.count }));
 
 export const getReports = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const { startDate, endDate, job, department, recruiter, source, status } = req.query;
 
   const start = parseDate(startDate);

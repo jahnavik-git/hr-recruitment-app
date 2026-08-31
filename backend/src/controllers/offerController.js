@@ -174,12 +174,36 @@ export const updateOfferStatus = asyncHandler(async (req, res) => {
     await createEmployeeFromAcceptedOffer(offer, candidate);
     await updateCandidateStatus(candidate, 'Hired', req.user, 'Candidate hired');
   }
+  let emailResult = null;
   if (status === 'Sent') {
-    const populated = await populateOffer(Offer.findById(offer._id));
-    await sendOfferEmail({ to: populated.candidateId.email, candidateName: `${populated.candidateId.firstName} ${populated.candidateId.lastName}`, offer: populated, attachmentPath: populated.offerLetterPath });
+    const populatedForEmail = await populateOffer(Offer.findById(offer._id));
+    try {
+      emailResult = await sendOfferEmail({
+        to: populatedForEmail.candidateId.email,
+        candidateName: `${populatedForEmail.candidateId.firstName} ${populatedForEmail.candidateId.lastName}`,
+        offer: populatedForEmail,
+        attachmentPath: populatedForEmail.offerLetterPath,
+      });
+    } catch (err) {
+      console.error('Failed to send offer email:', err.message);
+      emailResult = { delivered: false, mode: 'error', error: err.message };
+    }
   }
+
   const populated = await populateOffer(Offer.findById(offer._id));
-  res.status(200).json({ success: true, message: `Offer ${status.toLowerCase()} successfully`, data: { offer: populated } });
+
+  let message = `Offer ${status.toLowerCase()} successfully`;
+  if (status === 'Sent') {
+    if (emailResult?.delivered) {
+      message = 'Offer status updated to Sent; email accepted by the email provider.';
+    } else if (emailResult?.mode === 'mock') {
+      message = 'Offer status updated to Sent, but the email was NOT sent (mock mode: email credentials are not configured).';
+    } else {
+      message = `Offer status updated to Sent, but the email FAILED to send${emailResult?.error ? `: ${emailResult.error}` : '.'}`;
+    }
+  }
+
+  res.status(200).json({ success: true, message, data: { offer: populated, email: emailResult } });
 });
 
 export const generateOfferPdfFile = asyncHandler(async (req, res) => {

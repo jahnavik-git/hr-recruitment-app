@@ -249,7 +249,7 @@ const CandidateForm = () => {
                   </span>
                 </div>
               </div>
-              <div className="mt-3 small text-muted">Accepted formats: PDF, DOC, DOCX. Parsed resume fields can be reviewed and saved.</div>
+              <div className="mt-3 small text-muted">Accepted formats: PDF, DOC, DOCX.</div>
             </div>
           </div>
 

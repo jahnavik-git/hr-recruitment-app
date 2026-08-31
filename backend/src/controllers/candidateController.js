@@ -51,8 +51,8 @@ const parseExperienceNumber = (experience = '') => {
   return match ? parseFloat(match[0]) : null;
 };
 
-const buildMatchDetails = (candidate, job) => {
-  const candidateSkills = (candidate.skills || []).map((skill) => skill.toLowerCase().trim());
+export const buildMatchDetails = (candidate, job) => {
+  const candidateSkills = (Array.isArray(candidate.skills) ? candidate.skills : []).map((skill) => skill.toLowerCase().trim());
   const requiredSkills = (job.requiredSkills || []).map((skill) => skill.toLowerCase().trim());
   const preferredSkills = (job.preferredSkills || []).map((skill) => skill.toLowerCase().trim());
 
@@ -298,6 +298,11 @@ export const uploadResume = asyncHandler(async (req, res) => {
     parsed.education = extractedEducation;
   }
 
+  // Extract skills automatically from resume text (reuses the same extractor as job descriptions)
+  const extractedSkills = extractSkillsFromText(text);
+  console.log('Resume extracted skills:', extractedSkills);
+  parsed.skills = extractedSkills;
+
   res.status(200).json({
     success: true,
     message: 'Resume parsed successfully',
@@ -306,6 +311,7 @@ export const uploadResume = asyncHandler(async (req, res) => {
       resumeUrl: `/uploads/${filename}`,
       resumeFilename: filename,
       extractedEducation,
+      extractedSkills,
     },
   });
 });
@@ -322,6 +328,7 @@ export const createCandidate = asyncHandler(async (req, res) => {
     currentDesignation,
     referredEmployeeName,
     education,
+    skills,
     source,
     appliedJob,
     partner,
@@ -353,6 +360,7 @@ export const createCandidate = asyncHandler(async (req, res) => {
     currentCompany,
     currentDesignation,
     education,
+    skills: Array.isArray(skills) ? skills : [],
     source: CANDIDATE_SOURCES.includes(source) ? source : 'Other',
     status: PIPELINE_STATUSES.includes(req.body.status)
       ? req.body.status
@@ -550,6 +558,7 @@ export const updateCandidate = asyncHandler(async (req, res) => {
     currentDesignation,
     referredEmployeeName,
     education,
+    skills,
     source,
     appliedJob,
     partner,
@@ -577,6 +586,7 @@ export const updateCandidate = asyncHandler(async (req, res) => {
   candidate.currentDesignation = currentDesignation ?? candidate.currentDesignation;
   candidate.referredEmployeeName = referredEmployeeName ?? candidate.referredEmployeeName;
   candidate.education = education ?? candidate.education;
+  candidate.skills = Array.isArray(skills) ? skills : candidate.skills;
   candidate.source = CANDIDATE_SOURCES.includes(source)
     ? source
     : candidate.source;

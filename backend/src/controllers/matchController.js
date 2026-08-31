@@ -6,6 +6,8 @@ import Job from '../models/Job.js';
 import MatchResult from '../models/MatchResult.js';
 import { calculateMatchScore } from '../utils/matchingAlgorithm.js';
 import { extractSkillsFromJD } from '../utils/skillExtractor.js';
+import { buildMatchDetails } from './candidateController.js';
+import { closeExpiredJobs } from '../utils/jobStatus.js';
 
 const parseExperienceNumber = (experience = '') => {
   const match = experience.match(/\d+(\.\d+)?/);
@@ -38,6 +40,8 @@ export const MATCH_THRESHOLDS = {
 };
 
 export const getMatchingCandidates = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const job = await resolveJobReference(req.params.id);
   if (!job) {
     throw new ApiError(404, 'Job not found');
@@ -81,11 +85,12 @@ export const getMatchingCandidates = asyncHandler(async (req, res) => {
         };
       } catch (err) {
         // Fallback to old matching if new algorithm fails
+        console.error(`calculateMatchScore failed for candidate ${candidate._id}, using fallback:`, err);
         const match = buildMatchDetails(candidate, job);
         return {
           ...candidate,
           matchScore: match.score,
-          result: match.result,
+          result: match.category,
           matchDetails: { details: match.details },
         };
       }
@@ -119,6 +124,8 @@ export const getMatchingCandidates = asyncHandler(async (req, res) => {
 });
 
 export const getCandidateMatch = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const job = await resolveJobReference(req.params.id);
   if (!job) {
     throw new ApiError(404, 'Job not found');
@@ -135,10 +142,11 @@ export const getCandidateMatch = asyncHandler(async (req, res) => {
     match = calculateMatchScore(candidate, job);
   } catch (err) {
     // Fallback to old algorithm
+    console.error(`calculateMatchScore failed for candidate ${candidate._id}, using fallback:`, err);
     const oldMatch = buildMatchDetails(candidate, job);
-    match = { 
+    match = {
       overallMatchScore: oldMatch.score,
-      suitability: oldMatch.result,
+      suitability: oldMatch.category,
       ...oldMatch
     };
   }
@@ -184,6 +192,8 @@ export const getCandidateMatch = asyncHandler(async (req, res) => {
 });
 
 export const saveCandidateMatch = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const job = await resolveJobReference(req.params.id);
   if (!job) {
     throw new ApiError(404, 'Job not found');
@@ -204,10 +214,11 @@ export const saveCandidateMatch = asyncHandler(async (req, res) => {
     match = calculateMatchScore(candidate, job);
   } catch (err) {
     // Fallback to old algorithm
+    console.error(`calculateMatchScore failed for candidate ${candidate._id}, using fallback:`, err);
     const oldMatch = buildMatchDetails(candidate, job);
-    match = { 
+    match = {
       overallMatchScore: oldMatch.score,
-      suitability: oldMatch.result,
+      suitability: oldMatch.category,
       matchedSkills: oldMatch.details.matchingSkills,
       missingSkills: oldMatch.details.missingSkills,
     };

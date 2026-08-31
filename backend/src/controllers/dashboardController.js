@@ -8,6 +8,7 @@ import Offer from '../models/Offer.js';
 import Employee from '../models/Employee.js';
 import ActivityLog from '../models/ActivityLog.js';
 import { PIPELINE_STATUSES } from '../config/pipelineStatuses.js';
+import { closeExpiredJobs } from '../utils/jobStatus.js';
 
 const groupByMonth = (field) => [
   {
@@ -106,6 +107,8 @@ const normalizeMonthLabels = (rows) => rows.map((row) => ({ month: row._id, coun
 const buildSourceBreakdown = (sourceCounts) => sourceCounts.map((item) => ({ source: item._id || 'Unknown', count: item.count }));
 
 export const getDashboardStats = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const [totalJobs, activeJobs, closedJobs, totalCandidates, candidateStatusCounts, interviewCount, offersSent, offersAccepted, shortlistedCount, hiredCount, rejectedCount, candidatesByStage, candidatesByJob, applicationsByMonth, interviewsByMonth, offersByMonth, hiresByMonth, sourceReport, rejectionReasons, recentCandidates, recentJobs, upcomingInterviews, recentOffers, recentHires] = await Promise.all([
     Job.countDocuments(),
     Job.countDocuments({ status: 'Active' }),

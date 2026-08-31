@@ -77,6 +77,10 @@ const candidateSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500, 'Education cannot exceed 500 characters'],
     },
+    skills: {
+      type: [{ type: String, trim: true }],
+      default: [],
+    },
     source: {
       type: String,
       enum: CANDIDATE_SOURCES,

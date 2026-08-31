@@ -140,9 +140,17 @@ const InterviewForm = () => {
         await updateInterview(id, payload);
         setSuccess('Interview updated successfully');
       } else {
-        await createInterview(payload);
-        setSuccess('Interview scheduled successfully');
-        setTimeout(() => navigate('/interviews'), 700);
+        const response = await createInterview(payload);
+        const email = response.data.data.email;
+        const emailNote = !email
+          ? ''
+          : email.delivered
+          ? ' Invitation email accepted by the email provider.'
+          : email.mode === 'mock'
+          ? ' Invitation email was NOT sent (mock mode: email credentials are not configured).'
+          : ` Invitation email FAILED to send${email.error ? `: ${email.error}` : '.'}`;
+        setSuccess(`Interview scheduled successfully.${emailNote}`);
+        setTimeout(() => navigate('/interviews'), 1800);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to save interview');

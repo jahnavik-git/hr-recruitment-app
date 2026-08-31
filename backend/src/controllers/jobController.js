@@ -3,6 +3,7 @@ import asyncHandler from '../middleware/asyncHandler.js';
 import mongoose from 'mongoose';
 import Job from '../models/Job.js';
 import { extractSkillsFromJD } from '../utils/skillExtractor.js';
+import { closeExpiredJobs, deriveJobStatus } from '../utils/jobStatus.js';
 
 const parseStringArray = (value) => {
   if (Array.isArray(value)) {
@@ -112,7 +113,7 @@ export const createJob = asyncHandler(async (req, res) => {
     numberOfOpenings: Number(numberOfOpenings),
     recruiter,
     hiringManager,
-    status: status || 'Draft',
+    status: deriveJobStatus(status || 'Draft', closingDate),
     closingDate: closingDate ? new Date(closingDate) : undefined,
   });
 
@@ -126,6 +127,8 @@ export const createJob = asyncHandler(async (req, res) => {
 });
 
 export const getJobs = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const {
     search,
     status,
@@ -195,6 +198,8 @@ const resolveJobReference = async (jobReference) => {
 };
 
 export const getJobById = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const job = await resolveJobReference(req.params.id);
 
   if (!job) {
@@ -208,6 +213,8 @@ export const getJobById = asyncHandler(async (req, res) => {
 });
 
 export const updateJob = asyncHandler(async (req, res) => {
+  await closeExpiredJobs();
+
   const job = await Job.findById(req.params.id);
 
   if (!job) {
@@ -253,13 +260,16 @@ export const updateJob = asyncHandler(async (req, res) => {
         : job.numberOfOpenings,
     recruiter: req.body.recruiter,
     hiringManager: req.body.hiringManager,
-    status: req.body.status,
     closingDate: req.body.closingDate
       ? new Date(req.body.closingDate)
       : req.body.closingDate === ''
       ? undefined
       : job.closingDate,
   };
+  updates.status = deriveJobStatus(
+    req.body.status !== undefined ? req.body.status : job.status,
+    updates.closingDate !== undefined ? updates.closingDate : job.closingDate
+  );
 
   if (
     updates.minimumExperience !== undefined &&
