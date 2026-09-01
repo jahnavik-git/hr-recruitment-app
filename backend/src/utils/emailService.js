@@ -12,7 +12,9 @@ const getTransporter = () => {
 
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.EMAIL_PORT, 10) || 465,
+      secure: (process.env.EMAIL_PORT || '465') === '465',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,

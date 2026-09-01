@@ -13,14 +13,16 @@ export const getEmailConfigStatus = () => ({
 // on failure, Nodemailer/Google's error text describes the rejection reason
 // but never contains the credential values themselves.
 export const verifyEmailAuth = async () => {
-  const { emailUserPresent, emailPasswordPresent, emailService } = getEmailConfigStatus();
+  const { emailUserPresent, emailPasswordPresent } = getEmailConfigStatus();
 
   if (!emailUserPresent || !emailPasswordPresent) {
     return { ok: false, reason: 'not-configured' };
   }
 
   const transporter = nodemailer.createTransport({
-    service: emailService,
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT, 10) || 465,
+    secure: (process.env.EMAIL_PORT || '465') === '465',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
