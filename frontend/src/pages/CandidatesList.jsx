@@ -243,21 +243,30 @@ const CandidatesList = () => {
                     <tr key={candidate._id} className="align-middle">
                       <td className="align-middle">
                         <div className="d-flex align-items-center gap-3">
-                          {candidate.imageUrl ? (
+                          {candidate.imageUrl && (
                             <img
                               src={getResumeUrl(candidate.imageUrl)}
                               alt={`${candidate.firstName} ${candidate.lastName}`}
                               className="rounded-circle border"
                               style={{ width: 32, height: 32, objectFit: 'cover' }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling.style.display = 'flex';
+                              }}
                             />
-                          ) : (
-                            <div
-                              className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                              style={{ width: 32, height: 32, fontSize: '0.75rem', fontWeight: 600 }}
-                            >
-                              {(candidate.firstName?.[0] || 'C') + (candidate.lastName?.[0] || '')}
-                            </div>
                           )}
+                          <div
+                            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              display: candidate.imageUrl ? 'none' : 'flex',
+                            }}
+                          >
+                            {(candidate.firstName?.[0] || 'C') + (candidate.lastName?.[0] || '')}
+                          </div>
                           <Link to={`/candidates/${candidate._id}`} className="text-decoration-none fw-semibold">
                             {candidate.firstName} {candidate.lastName}
                           </Link>

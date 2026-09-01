@@ -506,18 +506,21 @@ const CandidateForm = () => {
             <div className="card-body">
               <h6 className="card-title">Preview</h6>
               <div className="d-flex align-items-center gap-3 mb-3">
-                {form.imageUrl ? (
+                {form.imageUrl && (
                   <img
                     src={getResumeUrl(form.imageUrl)}
                     alt="Candidate"
                     className="rounded-circle border"
                     style={{ width: 56, height: 56, objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling.style.display = 'flex';
+                    }}
                   />
-                ) : (
-                  <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{ width: 56, height: 56 }}>
-                    <span className="fs-5 fw-bold">{(form.firstName?.[0] || 'C') + (form.lastName?.[0] || '')}</span>
-                  </div>
                 )}
+                <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{ width: 56, height: 56, display: form.imageUrl ? 'none' : 'flex' }}>
+                  <span className="fs-5 fw-bold">{(form.firstName?.[0] || 'C') + (form.lastName?.[0] || '')}</span>
+                </div>
                 <div>
                   <div className="fw-semibold">{form.firstName || 'First'} {form.lastName || 'Last'}</div>
                   <div className="text-muted small">{form.currentDesignation || 'Candidate Title'}</div>

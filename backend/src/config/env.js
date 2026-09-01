@@ -31,6 +31,9 @@ const env = {
   adminEmail: process.env.ADMIN_EMAIL || 'admin@company.com',
   adminPassword: process.env.ADMIN_PASSWORD || 'Admin@123',
   companyName: process.env.COMPANY_NAME || 'Azimuth AI',
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '',
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
 };
 
 export default env;

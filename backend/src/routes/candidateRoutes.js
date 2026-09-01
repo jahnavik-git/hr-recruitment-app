@@ -45,16 +45,6 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const imageStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads'));
-  },
-  filename: (req, file, cb) => {
-    const sanitized = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, sanitized);
-  },
-});
-
 const imageFileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 
@@ -66,7 +56,13 @@ const imageFileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter });
-const uploadImage = multer({ storage: imageStorage, fileFilter: imageFileFilter });
+// Candidate images are uploaded to Cloudinary, so they're kept in memory rather than
+// written to the (ephemeral, on Render) local disk. See uploadCandidateImage.
+const uploadImage = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: imageFileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 router.use(protect);
 

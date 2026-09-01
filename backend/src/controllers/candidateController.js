@@ -3,6 +3,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../middleware/asyncHandler.js';
+import cloudinary from '../config/cloudinary.js';
 import Candidate, { CANDIDATE_SOURCES, CANDIDATE_TAGS } from '../models/Candidate.js';
 import Job from '../models/Job.js';
 import Partner from '../models/Partner.js';
@@ -253,19 +254,36 @@ const parseResumeText = (text) => {
   return result;
 };
 
+const uploadBufferToCloudinary = (buffer) =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'hr-recruitment/candidates', resource_type: 'image' },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      }
+    );
+    uploadStream.end(buffer);
+  });
+
 export const uploadCandidateImage = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, 'Candidate image is required');
   }
 
-  const { filename } = req.file;
+  let result;
+  try {
+    result = await uploadBufferToCloudinary(req.file.buffer);
+  } catch (err) {
+    throw new ApiError(502, 'Unable to upload candidate image. Please try again.');
+  }
 
   res.status(200).json({
     success: true,
     message: 'Candidate image uploaded successfully',
     data: {
-      imageUrl: `/uploads/${filename}`,
-      imageFilename: filename,
+      imageUrl: result.secure_url,
+      imageFilename: result.public_id,
     },
   });
 });
@@ -596,6 +614,11 @@ export const updateCandidate = asyncHandler(async (req, res) => {
   candidate.appliedJob = await resolveJobReference(appliedJob) || candidate.appliedJob;
   candidate.resumeUrl = resumeUrl ?? candidate.resumeUrl;
   candidate.resumeFilename = resumeFilename ?? candidate.resumeFilename;
+
+  const previousImageUrl = candidate.imageUrl;
+  const previousImagePublicId = candidate.imageFilename;
+  const isReplacingImage = imageUrl !== undefined && imageUrl !== previousImageUrl;
+
   candidate.imageUrl = imageUrl ?? candidate.imageUrl;
   candidate.imageFilename = imageFilename ?? candidate.imageFilename;
   candidate.partner = await resolvePartnerReference(partner) || candidate.partner;
@@ -606,6 +629,12 @@ export const updateCandidate = asyncHandler(async (req, res) => {
   candidate.matchDetails = match.details;
 
   await candidate.save();
+
+  // Best-effort cleanup: if the image was replaced and the previous one was a Cloudinary
+  // upload (has a public_id), delete it so old images don't pile up. Never blocks the response.
+  if (isReplacingImage && previousImageUrl?.startsWith('https://res.cloudinary.com') && previousImagePublicId) {
+    cloudinary.uploader.destroy(previousImagePublicId).catch(() => {});
+  }
 
   res.status(200).json({
     success: true,
