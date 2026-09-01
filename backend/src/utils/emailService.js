@@ -1,55 +1,33 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { escapeHtml, htmlToPlainText } from './emailContent.js';
 
-const smtpConfigured = Boolean(
-  process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
-);
-
-let transporter = null;
-
-const getTransporter = () => {
-  if (!smtpConfigured) return null;
-
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT, 10) || 465,
-      secure: (process.env.EMAIL_PORT || '465') === '465',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      family: 4, // force IPv4 - Render's network can't reach Gmail over IPv6 (ENETUNREACH)
-    });
-  }
-
-  return transporter;
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendMail = async ({ to, subject, html, attachments }) => {
-  const message = { to, subject, template: subject };
-
-  if (!smtpConfigured) {
-    console.log('[mock-email]', JSON.stringify(message));
-    return { delivered: false, mode: 'mock', message };
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[mock-email]', JSON.stringify({ to, subject }));
+    return { delivered: false, mode: 'mock', message: { to, subject } };
   }
 
   try {
-    const info = await getTransporter().sendMail({
-      from: `"${process.env.EMAIL_FROM_NAME || 'HR Recruitment Team'}" <${process.env.EMAIL_USER}>`,
-      replyTo: process.env.EMAIL_USER,
+    const resendAttachments = attachments?.map((a) => ({
+      path: a.path,
+      filename: a.filename || a.path?.split('/').pop(),
+    }));
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'HR Team <onboarding@resend.dev>',
       to,
       subject,
       text: htmlToPlainText(html),
       html,
-      attachments,
+      attachments: resendAttachments,
     });
 
-    console.log('[email-sent]', to, subject, info.messageId);
-    return { delivered: true, mode: 'sent', messageId: info.messageId };
+    if (error) throw new Error(error.message || 'Resend send failed');
+
+    console.log('[email-sent]', to, subject, data?.id);
+    return { delivered: true, mode: 'sent', messageId: data?.id };
   } catch (err) {
     console.error('[email-failed]', to, subject, err.message);
     return { delivered: false, mode: 'error', error: err.message };

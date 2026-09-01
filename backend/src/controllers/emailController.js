@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import Candidate from '../models/Candidate.js';
 import EmailHistory from '../models/EmailHistory.js';
 import Job from '../models/Job.js';
@@ -8,20 +8,7 @@ import env from '../config/env.js';
 import { createActivity } from '../utils/activityService.js';
 import { plainTextToHtml } from '../utils/emailContent.js';
 
-// Create Nodemailer transporter for Gmail
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT, 10) || 465,
-  secure: (process.env.EMAIL_PORT || '465') === '465',
-  auth: {
-    user: env.emailUser,
-    pass: env.emailPassword,
-  },
-  connectionTimeout: 10000, // 10s - fail fast instead of hanging
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  family: 4, // force IPv4 - Render's network can't reach Gmail over IPv6 (ENETUNREACH)
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 
@@ -32,13 +19,6 @@ const getDisplayCandidateName = (candidate) => {
 
 export const sendCandidateEmail = asyncHandler(async (req, res) => {
   const { candidateId, to, subject, message, template } = req.body;
-
-  // Check if email credentials are configured
-  const emailConfigured = env.emailUser && env.emailPassword;
-  
-  if (!emailConfigured) {
-    console.warn('[email-mock-mode] Email credentials not configured. Running in mock mode.');
-  }
 
   if (!candidateId) {
     throw new ApiError(400, 'Candidate is required');
@@ -85,28 +65,22 @@ export const sendCandidateEmail = asyncHandler(async (req, res) => {
     .replace(/{{companyName}}/g, companyName)
     .replace(/{{recruiterName}}/g, recruiterName);
 
-  // Send email via Gmail SMTP
+  // Send email via Resend
   try {
-    let result;
-    if (emailConfigured) {
-      result = await transporter.sendMail({
-        from: `"${process.env.EMAIL_FROM_NAME || 'HR Recruitment Team'}" <${env.emailUser}>`,
-        replyTo: env.emailUser,
-        to: recipient,
-        subject: renderedSubject,
-        text: renderedMessage,
-        html: plainTextToHtml(renderedMessage),
-      });
-      console.log('[candidate-email-sent]', recipient, renderedSubject, result.messageId);
-    } else {
-      // Mock mode: log email instead of sending
-      console.log('[email-mock-mode] Email not sent (credentials not configured):', {
-        to: recipient,
-        subject: renderedSubject,
-        message: renderedMessage,
-      });
-      result = { messageId: 'mock-' + Date.now(), accepted: [recipient] };
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'HR Team <onboarding@resend.dev>',
+      to: recipient,
+      subject: renderedSubject,
+      text: renderedMessage,
+      html: plainTextToHtml(renderedMessage),
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to send email via Resend');
     }
+
+    console.log('[candidate-email-sent]', recipient, renderedSubject, data?.id);
+    const result = { messageId: data?.id };
 
     // Save successful email to history only after successful send
     const history = await EmailHistory.create({
@@ -138,10 +112,8 @@ export const sendCandidateEmail = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
-      status: emailConfigured ? 'sent' : 'mock',
-      message: emailConfigured
-        ? `Email successfully accepted by the email provider for delivery to ${recipient}.`
-        : `Mock mode: email was NOT actually sent (email credentials are not configured on this server).`,
+      status: 'sent',
+      message: `Email successfully accepted by the email provider for delivery to ${recipient}.`,
       data: { history },
     });
   } catch (error) {
