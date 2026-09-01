@@ -7,7 +7,6 @@ import Job from '../models/Job.js';
 import Assessment from '../models/Assessment.js';
 import ActivityLog from '../models/ActivityLog.js';
 import { PIPELINE_STATUSES } from '../config/pipelineStatuses.js';
-import { sendInterviewInvitationEmail } from '../utils/emailService.js';
 
 const resolveReferenceId = async (Model, reference) => {
   if (!reference) {
@@ -100,22 +99,10 @@ export const createInterview = asyncHandler(async (req, res) => {
 
   await updateCandidatePipelineStatus(candidateDoc, interview.status);
 
-  const jobDoc = resolvedJobId ? await Job.findById(resolvedJobId) : null;
-  let emailResult = null;
-  try {
-    emailResult = await sendInterviewInvitationEmail({
-      candidate: candidateDoc,
-      job: jobDoc,
-      interview,
-    });
-  } catch (err) {
-    console.error('Failed to send interview invitation email:', err.message);
-  }
-
   res.status(201).json({
     success: true,
     message: 'Interview created successfully',
-    data: { interview, email: emailResult },
+    data: { interview },
   });
 });
 
@@ -249,25 +236,6 @@ export const updateInterview = asyncHandler(async (req, res) => {
     success: true,
     message: 'Interview updated successfully',
     data: { interview },
-  });
-});
-
-export const resendInterviewInvitation = asyncHandler(async (req, res) => {
-  const interview = await Interview.findById(req.params.id).populate('candidate').populate('job');
-  if (!interview) {
-    throw new ApiError(404, 'Interview not found');
-  }
-
-  const emailResult = await sendInterviewInvitationEmail({
-    candidate: interview.candidate,
-    job: interview.job,
-    interview,
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'Interview invitation sent',
-    data: { email: emailResult },
   });
 });
 

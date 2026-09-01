@@ -8,7 +8,6 @@ import Employee from '../models/Employee.js';
 import Job from '../models/Job.js';
 import ActivityLog from '../models/ActivityLog.js';
 import { generateOfferPdf } from '../utils/offerPdf.js';
-import { sendOfferEmail } from '../utils/emailService.js';
 
 const populateOffer = (query) => query
   .populate('candidateId', 'firstName lastName email phone status appliedJob')
@@ -174,36 +173,10 @@ export const updateOfferStatus = asyncHandler(async (req, res) => {
     await createEmployeeFromAcceptedOffer(offer, candidate);
     await updateCandidateStatus(candidate, 'Hired', req.user, 'Candidate hired');
   }
-  let emailResult = null;
-  if (status === 'Sent') {
-    const populatedForEmail = await populateOffer(Offer.findById(offer._id));
-    try {
-      emailResult = await sendOfferEmail({
-        to: populatedForEmail.candidateId.email,
-        candidateName: `${populatedForEmail.candidateId.firstName} ${populatedForEmail.candidateId.lastName}`,
-        offer: populatedForEmail,
-        attachmentPath: populatedForEmail.offerLetterPath,
-      });
-    } catch (err) {
-      console.error('Failed to send offer email:', err.message);
-      emailResult = { delivered: false, mode: 'error', error: err.message };
-    }
-  }
-
   const populated = await populateOffer(Offer.findById(offer._id));
+  const message = `Offer ${status.toLowerCase()} successfully`;
 
-  let message = `Offer ${status.toLowerCase()} successfully`;
-  if (status === 'Sent') {
-    if (emailResult?.delivered) {
-      message = 'Offer status updated to Sent; email accepted by the email provider.';
-    } else if (emailResult?.mode === 'mock') {
-      message = 'Offer status updated to Sent, but the email was NOT sent (mock mode: email credentials are not configured).';
-    } else {
-      message = `Offer status updated to Sent, but the email FAILED to send${emailResult?.error ? `: ${emailResult.error}` : '.'}`;
-    }
-  }
-
-  res.status(200).json({ success: true, message, data: { offer: populated, email: emailResult } });
+  res.status(200).json({ success: true, message, data: { offer: populated } });
 });
 
 export const generateOfferPdfFile = asyncHandler(async (req, res) => {

@@ -43,8 +43,8 @@ const emailHistorySchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Sent', 'Failed'],
-      default: 'Sent',
+      enum: ['Draft', 'Prepared', 'Downloaded'],
+      default: 'Draft',
     },
     errorMessage: {
       type: String,

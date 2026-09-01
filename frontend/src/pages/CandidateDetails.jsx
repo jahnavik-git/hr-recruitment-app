@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getCandidate, deleteCandidate, sendCandidateEmail, getCandidateEmailHistory } from '../services/candidateService';
+import { getCandidate, deleteCandidate, saveCandidateEmailRecord, getCandidateEmailHistory } from '../services/candidateService';
 import { getInterviews } from '../services/interviewService';
 import { getResumeUrl } from '../utils/urlHelper';
 import { useAuth } from '../context/AuthContext';
@@ -181,44 +181,87 @@ const CandidateDetails = () => {
     }));
   };
 
-  const handleSendEmail = async () => {
-    if (!candidate?.email) {
-      setEmailNotice('This candidate does not have an email address.');
-      setShowEmailModal(false);
-      return;
-    }
-
+  const validateEmailForm = () => {
     const trimmedSubject = emailForm.subject.trim();
     const trimmedMessage = emailForm.message.trim();
-
-    if (!trimmedSubject || !trimmedMessage) {
-      setEmailFeedback('Subject and message are required.');
-      return;
+    if (!emailForm.to || !trimmedSubject || !trimmedMessage) {
+      setEmailStatus('error');
+      setEmailFeedback('To, subject, and message are required.');
+      return false;
     }
+    return true;
+  };
 
+  // This ATS never sends email itself - it only records that a draft was
+  // created or downloaded, so history reflects what actually happened.
+  const recordEmailAction = async (recordStatus, successMessage) => {
     try {
       setSendingEmail(true);
-      setEmailFeedback('');
-      setEmailStatus('');
-      const response = await sendCandidateEmail({
+      await saveCandidateEmailRecord({
         candidateId: candidate._id,
         to: emailForm.to || candidate.email,
-        subject: trimmedSubject,
-        message: trimmedMessage,
+        subject: emailForm.subject.trim(),
+        message: emailForm.message.trim(),
         template: emailForm.template,
+        status: recordStatus,
       });
-      const { status, message } = response.data;
-      setEmailStatus(status || 'sent');
-      setEmailFeedback(message || `Email accepted by the email provider for delivery to ${candidate.email}`);
+      setEmailStatus('ok');
+      setEmailFeedback(successMessage);
       setShowEmailModal(false);
       await loadEmailHistory();
     } catch (err) {
-      const backendMessage = err.response?.data?.message || err.message || 'Failed to send email. Please try again.';
-      setEmailStatus('failed');
-      setEmailFeedback(backendMessage);
+      setEmailStatus('error');
+      setEmailFeedback(err.response?.data?.message || err.message || 'Unable to save this email record.');
     } finally {
       setSendingEmail(false);
     }
+  };
+
+  const buildEmlContent = () => {
+    const recruiterName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+    const fromHeader = user?.email ? `${recruiterName || 'Recruiter'} <${user.email}>` : recruiterName || 'Recruiter';
+    return [
+      `From: ${fromHeader}`,
+      `To: ${emailForm.to}`,
+      `Subject: ${emailForm.subject.trim()}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      emailForm.message.trim(),
+    ].join('\r\n');
+  };
+
+  const handleSaveDraft = async () => {
+    if (!validateEmailForm()) return;
+    await recordEmailAction('Draft', 'Email draft created.');
+  };
+
+  const handleDownloadEml = async () => {
+    if (!validateEmailForm()) return;
+
+    const blob = new Blob([buildEmlContent()], { type: 'message/rfc822' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `email-${candidateName}.eml`.replace(/\s+/g, '-');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    await recordEmailAction('Downloaded', 'Email file downloaded.');
+  };
+
+  const handleOpenEmailClient = () => {
+    if (!validateEmailForm()) return;
+
+    const mailto = `mailto:${encodeURIComponent(emailForm.to)}?subject=${encodeURIComponent(
+      emailForm.subject.trim()
+    )}&body=${encodeURIComponent(emailForm.message.trim())}`;
+    window.location.href = mailto;
+    setEmailStatus('ok');
+    setEmailFeedback('Email opened in your default mail application.');
+    setShowEmailModal(false);
   };
 
   if (loading) {
@@ -241,16 +284,7 @@ const CandidateDetails = () => {
     <div className="container-fluid px-4 py-4">
       {emailNotice && <div className="alert alert-warning">{emailNotice}</div>}
       {emailFeedback && (
-        <div
-          className={`alert ${
-            emailStatus === 'sent'
-              ? 'alert-success'
-              : emailStatus === 'mock'
-              ? 'alert-warning'
-              : 'alert-danger'
-          }`}
-        >
-          {emailStatus === 'mock' && <strong>Not actually sent — </strong>}
+        <div className={`alert ${emailStatus === 'error' ? 'alert-danger' : 'alert-success'}`}>
           {emailFeedback}
         </div>
       )}
@@ -292,7 +326,7 @@ const CandidateDetails = () => {
             onClick={openEmailModal}
           >
             <i className="bi bi-envelope me-2"></i>
-            Send Email
+            Create Email
           </button>
           <button type="button" className="btn btn-success" onClick={() => navigate('/candidates')}>
             OK
@@ -431,7 +465,7 @@ const CandidateDetails = () => {
                         <th>Date</th>
                         <th>Subject</th>
                         <th>Template</th>
-                        <th>Sent By</th>
+                        <th>Created By</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -443,8 +477,8 @@ const CandidateDetails = () => {
                           <td>{entry.template || 'Custom Email'}</td>
                           <td>{entry.sentBy ? `${entry.sentBy.firstName || ''} ${entry.sentBy.lastName || ''}`.trim() : 'System'}</td>
                           <td>
-                            <span className={`badge ${entry.status === 'Sent' ? 'bg-success' : 'bg-danger'}`}>
-                              {entry.status || 'Sent'}
+                            <span className={`badge ${entry.status === 'Downloaded' ? 'bg-info text-dark' : 'bg-secondary'}`}>
+                              {entry.status || 'Draft'}
                             </span>
                           </td>
                         </tr>
@@ -498,7 +532,7 @@ const CandidateDetails = () => {
           <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div className="modal-content">
               <div className="modal-header modal-header-brand">
-                <h5 className="modal-title">Send Email</h5>
+                <h5 className="modal-title">Create Email</h5>
                 <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={() => setShowEmailModal(false)}></button>
               </div>
               <div className="modal-body">
@@ -548,17 +582,18 @@ const CandidateDetails = () => {
                   </div>
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer flex-wrap">
+                <button type="button" className="btn btn-outline-primary" disabled={sendingEmail} onClick={handleSaveDraft}>
+                  {sendingEmail ? 'Saving...' : 'Save Email Draft'}
+                </button>
+                <button type="button" className="btn btn-primary" disabled={sendingEmail} onClick={handleDownloadEml}>
+                  <i className="bi bi-download me-1"></i>Download .eml
+                </button>
+                <button type="button" className="btn btn-outline-secondary" onClick={handleOpenEmailClient}>
+                  <i className="bi bi-box-arrow-up-right me-1"></i>Open in Email Client
+                </button>
                 <button type="button" className="btn btn-outline-secondary" onClick={() => setShowEmailModal(false)}>
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={sendingEmail}
-                  onClick={handleSendEmail}
-                >
-                  {sendingEmail ? 'Sending...' : 'Send Email'}
                 </button>
               </div>
             </div>

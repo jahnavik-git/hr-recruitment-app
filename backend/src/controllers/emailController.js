@@ -1,14 +1,8 @@
-import { Resend } from 'resend';
 import Candidate from '../models/Candidate.js';
 import EmailHistory from '../models/EmailHistory.js';
-import Job from '../models/Job.js';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../middleware/asyncHandler.js';
-import env from '../config/env.js';
 import { createActivity } from '../utils/activityService.js';
-import { plainTextToHtml } from '../utils/emailContent.js';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 
@@ -17,8 +11,14 @@ const getDisplayCandidateName = (candidate) => {
   return [candidate.firstName, candidate.lastName].filter(Boolean).join(' ').trim();
 };
 
-export const sendCandidateEmail = asyncHandler(async (req, res) => {
-  const { candidateId, to, subject, message, template } = req.body;
+const RECORD_STATUSES = ['Draft', 'Downloaded'];
+
+// This ATS does not send emails itself. This endpoint records that a
+// recruiter prepared an email draft (and, if applicable, downloaded it as an
+// .eml file) so the candidate's email history reflects what actually
+// happened - it never claims the email was delivered.
+export const createCandidateEmailRecord = asyncHandler(async (req, res) => {
+  const { candidateId, to, subject, message, template, status } = req.body;
 
   if (!candidateId) {
     throw new ApiError(400, 'Candidate is required');
@@ -47,92 +47,39 @@ export const sendCandidateEmail = asyncHandler(async (req, res) => {
   }
 
   const safeTemplate = template || 'Custom Email';
-  const job = candidate.appliedJob ? await Job.findById(candidate.appliedJob) : null;
-  const recruiterName = req.user ? `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() : 'Recruiter';
-  const companyName = env.companyName || 'HR Recruitment ATS';
+  const recordStatus = RECORD_STATUSES.includes(status) ? status : 'Draft';
 
-  const renderedSubject = String(subject)
-    .replace(/{{candidateName}}/g, getDisplayCandidateName(candidate))
-    .replace(/{{candidateEmail}}/g, candidate.email || '')
-    .replace(/{{jobTitle}}/g, job?.jobTitle || candidate.appliedJob?.jobTitle || '')
-    .replace(/{{companyName}}/g, companyName)
-    .replace(/{{recruiterName}}/g, recruiterName);
+  const history = await EmailHistory.create({
+    candidateId: candidate._id,
+    candidateName: getDisplayCandidateName(candidate),
+    candidateEmail: candidate.email,
+    subject: String(subject).trim(),
+    template: safeTemplate,
+    message: String(message).trim(),
+    sentBy: req.user?._id,
+    status: recordStatus,
+  });
 
-  const renderedMessage = String(message)
-    .replace(/{{candidateName}}/g, getDisplayCandidateName(candidate))
-    .replace(/{{candidateEmail}}/g, candidate.email || '')
-    .replace(/{{jobTitle}}/g, job?.jobTitle || candidate.appliedJob?.jobTitle || '')
-    .replace(/{{companyName}}/g, companyName)
-    .replace(/{{recruiterName}}/g, recruiterName);
-
-  // Send email via Resend
-  try {
-    const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'HR Team <onboarding@resend.dev>',
-      to: recipient,
-      subject: renderedSubject,
-      text: renderedMessage,
-      html: plainTextToHtml(renderedMessage),
-    });
-
-    if (error) {
-      throw new Error(error.message || 'Failed to send email via Resend');
-    }
-
-    console.log('[candidate-email-sent]', recipient, renderedSubject, data?.id);
-    const result = { messageId: data?.id };
-
-    // Save successful email to history only after successful send
-    const history = await EmailHistory.create({
-      candidateId: candidate._id,
-      candidateName: getDisplayCandidateName(candidate),
-      candidateEmail: candidate.email,
-      subject: renderedSubject,
+  await createActivity({
+    candidateId: candidate._id,
+    type: recordStatus === 'Downloaded' ? 'EMAIL_DOWNLOADED' : 'EMAIL_DRAFT_CREATED',
+    title: recordStatus === 'Downloaded' ? 'Email Downloaded' : 'Email Draft Created',
+    description: `Email ${recordStatus === 'Downloaded' ? 'downloaded' : 'drafted'} for ${recipient} with subject: ${subject}`,
+    performedBy: req.user?._id,
+    metadata: {
+      recipient,
+      subject,
       template: safeTemplate,
-      message: renderedMessage,
-      sentBy: req.user?._id,
-      status: 'Sent',
-      errorMessage: '',
-    });
+      emailHistoryId: history._id,
+    },
+  });
 
-    // Create activity for email sent
-    await createActivity({
-      candidateId: candidate._id,
-      type: 'EMAIL_SENT',
-      title: 'Email Sent',
-      description: `Email sent to ${recipient} with subject: ${renderedSubject}`,
-      performedBy: req.user?._id,
-      metadata: {
-        recipient,
-        subject: renderedSubject,
-        template: safeTemplate,
-        emailHistoryId: history._id,
-      },
-    });
-
-    res.status(200).json({
-      success: true,
-      status: 'sent',
-      message: `Email successfully accepted by the email provider for delivery to ${recipient}.`,
-      data: { history },
-    });
-  } catch (error) {
-    // Save failed email to history
-    const history = await EmailHistory.create({
-      candidateId: candidate._id,
-      candidateName: getDisplayCandidateName(candidate),
-      candidateEmail: candidate.email,
-      subject: renderedSubject,
-      template: safeTemplate,
-      message: renderedMessage,
-      sentBy: req.user?._id,
-      status: 'Failed',
-      errorMessage: error.message || 'Failed to send email',
-    });
-
-    console.error('[candidate-email-failed]', recipient, renderedSubject, error.message);
-    throw new ApiError(500, error.message || 'Failed to send email. Please try again.');
-  }
+  res.status(200).json({
+    success: true,
+    status: recordStatus,
+    message: recordStatus === 'Downloaded' ? 'Email file downloaded.' : 'Email draft created.',
+    data: { history },
+  });
 });
 
 export const getCandidateEmailHistory = asyncHandler(async (req, res) => {
@@ -152,4 +99,3 @@ export const getCandidateEmailHistory = asyncHandler(async (req, res) => {
     data: { history },
   });
 });
-

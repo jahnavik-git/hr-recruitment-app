@@ -10,7 +10,6 @@ const OfferDetails = () => {
   const [offer, setOffer] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [emailNotice, setEmailNotice] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const loadOffer = async () => {
@@ -24,16 +23,8 @@ const OfferDetails = () => {
     if (updatingStatus) return;
     try {
       setUpdatingStatus(true);
-      setEmailNotice(null);
       const response = await updateOfferStatus(id, status);
       setOffer(response.data.data.offer);
-      const email = response.data.data.email;
-      if (status === 'Sent') {
-        setEmailNotice({
-          variant: email?.delivered ? 'success' : email?.mode === 'mock' ? 'warning' : 'danger',
-          message: response.data.message,
-        });
-      }
       window.dispatchEvent(new Event('dashboardUpdated'));
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update offer status');
@@ -63,7 +54,6 @@ const OfferDetails = () => {
   return <Layout>
     <div className="d-flex justify-content-between align-items-start mb-4 gap-3 flex-column flex-md-row"><div><h3 className="mb-1">Offer {offer.offerId}</h3><p className="text-muted mb-0">{candidateName} · {offer.jobId?.jobTitle}</p></div><StatusBadge status={offer.status} /></div>
     {error && <div className="alert alert-danger">{error}</div>}
-    {emailNotice && <div className={`alert alert-${emailNotice.variant}`}>{emailNotice.message}</div>}
     <div className="row g-4">
       <div className="col-lg-8"><div className="card"><div className="card-body">
         <h5>Offer Preview</h5><hr /><h4>Azimuth AI</h4><p>Dear {candidateName},</p><p>We are pleased to offer you the position of <strong>{offer.jobId?.jobTitle}</strong> in the {offer.jobId?.department} department.</p>

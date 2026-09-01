@@ -30,8 +30,6 @@ const env = {
   jwtExpire: process.env.JWT_EXPIRE || '7d',
   adminEmail: process.env.ADMIN_EMAIL || 'admin@company.com',
   adminPassword: process.env.ADMIN_PASSWORD || 'Admin@123',
-  emailUser: process.env.EMAIL_USER || '',
-  emailPassword: process.env.EMAIL_PASSWORD || '',
   companyName: process.env.COMPANY_NAME || 'Azimuth AI',
 };
 
