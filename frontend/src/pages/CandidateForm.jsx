@@ -225,11 +225,6 @@ const CandidateForm = () => {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4">
         <div>
           <h3 className="mb-1">{isEdit ? 'Edit Candidate' : 'Add Candidate'}</h3>
-          <p className="text-muted mb-0">
-            {isEdit
-              ? 'Update candidate profile and resume details.'
-              : 'Upload a resume or enter candidate details manually.'}
-          </p>
         </div>
       </div>
 

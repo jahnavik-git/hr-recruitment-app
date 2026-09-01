@@ -117,11 +117,6 @@ const JobForm = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="mb-1">{isEdit ? 'Edit Job' : 'Create Job'}</h3>
-          <p className="text-muted mb-0">
-            {isEdit
-              ? 'Update job details and status.'
-              : 'Enter role details and create a new job posting.'}
-          </p>
         </div>
       </div>
 
