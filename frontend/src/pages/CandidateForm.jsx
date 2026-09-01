@@ -9,6 +9,7 @@ import {
 } from '../services/candidateService';
 import { getJobs } from '../services/jobService';
 import { getResumeUrl } from '../utils/urlHelper';
+import DocumentPreview from '../components/DocumentPreview';
 
 const initialFormState = {
   firstName: '',
@@ -41,6 +42,8 @@ const CandidateForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [jobs, setJobs] = useState([]);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const navigate = useNavigate();
 
   // Load available jobs for appliedJob dropdown
@@ -121,6 +124,9 @@ const CandidateForm = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Show the local preview immediately, before the upload round-trip completes.
+    setResumeFile(file);
+
     const formData = new FormData();
     formData.append('resume', file);
     setUploading(true);
@@ -139,6 +145,7 @@ const CandidateForm = () => {
       setSuccess('Resume parsed successfully. Please review and save.');
     } catch (err) {
       setError(err.response?.data?.message || 'Resume upload failed');
+      setResumeFile(null);
     } finally {
       setUploading(false);
     }
@@ -147,6 +154,8 @@ const CandidateForm = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    setImageFile(file);
 
     const formData = new FormData();
     formData.append('image', file);
@@ -165,9 +174,20 @@ const CandidateForm = () => {
       setSuccess('Candidate image uploaded successfully.');
     } catch (err) {
       setError(err.response?.data?.message || 'Candidate image upload failed');
+      setImageFile(null);
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleRemoveResume = () => {
+    setResumeFile(null);
+    setForm((prev) => ({ ...prev, resumeUrl: '', resumeFilename: '' }));
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setForm((prev) => ({ ...prev, imageUrl: '', imageFilename: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -456,6 +476,37 @@ const CandidateForm = () => {
         </div>
 
         <div className="col-lg-4">
+          <div className="card shadow-sm mb-4">
+            <div className="card-body">
+              <h6 className="card-title mb-3">Uploaded Documents</h6>
+              {!form.resumeFilename && !form.imageFilename && !resumeFile && !imageFile ? (
+                <p className="text-muted small mb-0">No documents uploaded yet.</p>
+              ) : (
+                <div className="d-flex flex-wrap gap-3" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                  {(form.resumeFilename || resumeFile) && (
+                    <DocumentPreview
+                      file={resumeFile}
+                      url={form.resumeUrl ? getResumeUrl(form.resumeUrl) : null}
+                      filename={form.resumeFilename}
+                      uploading={uploading && Boolean(resumeFile) && !form.resumeFilename}
+                      onRemove={handleRemoveResume}
+                    />
+                  )}
+                  {(form.imageFilename || imageFile) && (
+                    <DocumentPreview
+                      shape="circle"
+                      file={imageFile}
+                      url={form.imageUrl ? getResumeUrl(form.imageUrl) : null}
+                      filename={form.imageFilename}
+                      uploading={uploading && Boolean(imageFile) && !form.imageFilename}
+                      onRemove={handleRemoveImage}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="card shadow-sm mb-4">
             <div className="card-body">
               <h6 className="card-title">Preview</h6>
