@@ -275,6 +275,7 @@ export const uploadCandidateImage = asyncHandler(async (req, res) => {
   try {
     result = await uploadBufferToCloudinary(req.file.buffer);
   } catch (err) {
+    console.error('Cloudinary upload failed:', err.message);
     throw new ApiError(502, 'Unable to upload candidate image. Please try again.');
   }
 
