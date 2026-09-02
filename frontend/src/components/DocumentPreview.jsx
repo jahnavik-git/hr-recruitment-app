@@ -52,7 +52,7 @@ const DocumentPreview = ({ file, url, filename, shape = 'card', uploading, onRem
     return (
       <div className="d-flex flex-column align-items-center flex-shrink-0" style={{ width: 96 }}>
         <div className="position-relative">
-          {previewSrc && isImage ? (
+          {previewSrc ? (
             <img
               src={previewSrc}
               alt={name || 'Candidate photo'}
