@@ -6,6 +6,7 @@ import { getResumeUrl } from '../utils/urlHelper';
 import { useAuth } from '../context/AuthContext';
 import ActivityTimeline from '../components/ActivityTimeline';
 import TagSelector from '../components/TagSelector';
+import CandidateAvatar from '../components/CandidateAvatar';
 
 const emailTemplates = {
   'Application Received': {
@@ -291,26 +292,7 @@ const CandidateDetails = () => {
 
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4">
         <div className="d-flex align-items-center gap-3">
-          {candidate.imageUrl && (
-            <img
-              src={getResumeUrl(candidate.imageUrl)}
-              alt={`${candidate.firstName} ${candidate.lastName}`}
-              className="rounded-circle border"
-              style={{ width: 72, height: 72, objectFit: 'cover' }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling.style.display = 'flex';
-              }}
-            />
-          )}
-          <div
-            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-            style={{ width: 72, height: 72, display: candidate.imageUrl ? 'none' : 'flex' }}
-          >
-            <span className="fs-3 fw-bold">
-              {candidate.firstName?.[0] || 'C'}{candidate.lastName?.[0] || ''}
-            </span>
-          </div>
+          <CandidateAvatar candidate={candidate} size={72} fontSize="1.75rem" fontWeight={700} />
           <div>
             <h3 className="mb-1">{candidateName}</h3>
             <p className="text-muted mb-2">{candidate.currentDesignation || 'Candidate profile'}</p>
